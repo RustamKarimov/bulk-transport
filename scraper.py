@@ -11,7 +11,7 @@ import re
 import pandas as pd
 
 
-website = 'https://www.bulktransporter.com/cargo-tank-repair-directory/'
+website = 'https://www.bulktransporter.com/cargo-tank-repair-directory/' # website to start scraping
 
 
 class Scrapper:
@@ -20,30 +20,43 @@ class Scrapper:
         self.dictionary = []
         
     def get_link(self, link):
+        """
+        Get the link
+        """
         return requests.get(link)
     
     def get_content(self, link):
+        """
+        Get content of the link
+        """
         return link.content
     
     def get_soup(self, content, parser='html.parser'):
+        """
+        Convert content to a BeautifulSoup soup
+        """
         return bs4.BeautifulSoup(content, parser)
     
     def get_soup_from_link(self, link):
+        """
+        Get BeautifulSoup soup for the provided link
+        """
         webpage = self.get_link(link)
         webcontent = self.get_content(webpage)
         return self.get_soup(webcontent)
         
     def get_links_from_website(self):
+        """
+        Get list of all links in a webpage
+        """
         soup = self.get_soup_from_link(self.website)
         links = soup.find_all('a')
         return links
-    
-    def create_empty_dataframe(self):
-        self.columns = ['Company', 'Address', 'City', 'Zip', 'Phone', 'Fax', 'Services']
-        df = pd.DataFrame(columns=self.columns)
-        return df
-    
+
     def unzip_address(self, postal_address):
+        """
+        Gets address or zip number from the address line
+        """
         address = re.search(r'(?P<address>[\s\w\d]+),.*', postal_address)
         if address:
             address = address['address']
@@ -54,14 +67,23 @@ class Scrapper:
         return address, zipcode
         
     def unzip_phone_fax(self, contacts):
+        """
+        Gets phone number and fax from the contacts line
+        """
         phones = re.findall(r'(\(\d{3}\) \d{3}-\d{4})', contacts)
         fax = re.findall(r'\d{3}-\d{3}-\d{4}', contacts)
         return "/".join(phones), "/".join(fax)
     
     def unzip_services(self, services):
+        """
+        Get list of services
+        """
         return re.search(r'Services: (.*)', services).groups()[0]
     
     def extract_information(self, link):
+        """
+        Extracts information about companies in provided link
+        """
         soup = self.get_soup_from_link(link)
         header = soup.find('h4')
         if header is None:
@@ -96,15 +118,24 @@ class Scrapper:
         return df
                         
     def convert_to_dataframe(self):
+        """
+        Converts the information stored as dictionary into pandas dataframe
+        """
         self.dataframe = pd.DataFrame(self.dictionary[0])
         for dictionary in self.dictionary[1:]:
             dataframe = pd.DataFrame(dictionary)
             self.dataframe = pd.concat([self.dataframe, dataframe], sort=False, ignore_index=True)
                           
     def write_to_excel(self):
+        """
+        Write the scrapped information into excel file
+        """
         self.dataframe.to_excel('data.xlsx')
                           
     def search_through_the_links(self):
+        """
+        Check each link in the website and extract information from them.
+        """
         links = self.get_links_from_website()
         number = 1
         for link in links:
